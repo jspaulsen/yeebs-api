@@ -1,19 +1,33 @@
 services:
   postgres:
-    image: postgres
+    image: postgres:16-bookworm
     environment:
-      POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
       PGDATA: /data/postgres
+      POSTGRES_DB: database
     volumes:
        - postgres:/data/postgres
     ports:
       - "5432:5432"
-    networks:
-      - postgres
     restart: unless-stopped
     healthcheck:
-      test: [“CMD-SHELL”, “pg_isready”]
-      interval: 10s
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
       timeout: 5s
-      retries: 10
+      retries: 5000
+
+  dbmate:
+    image: ghcr.io/amacneil/dbmate
+    environment:
+      DATABASE_URL: postgres://postgres:password@postgres:5432/database?sslmode=disable
+      DB_WAIT: true
+    depends_on:
+      - postgres
+    volumes:
+      - ./db:/db
+    command: ["up"]
+
+
+volumes:
+  postgres:

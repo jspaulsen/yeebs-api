@@ -4,18 +4,21 @@ from typing import AsyncGenerator
 from fastapi import FastAPI
 from tortoise import Tortoise
 
+from app.configuration import Configuration
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+    configuration = Configuration()
+
     await Tortoise.init(
-        db_url="postgres://postgres:example@postgres:5432/postgres",
+        db_url=configuration.database_url,
         modules={"models": ["app.models.sql"]},
     )
-    # await Tortoise.init() # TODO: Once setup, use this
+
+    app.state.configuration = configuration
 
     yield
-
-    # await Tortoise.close_connections()
 
 
 api = FastAPI(lifespan=lifespan)

@@ -1,7 +1,7 @@
 {
     "_meta": {
         "hash": {
-            "sha256": "01558be317d1d431bbeb2a59ddd50b2058a1bd89b14245965c66889536d5a86c"
+            "sha256": "25efde3d757c23168347dcdc793f10e99e1bcd8f21635da833e4ee887a8e779c"
         },
         "pipfile-spec": 6,
         "requires": {
@@ -236,6 +236,15 @@
             "markers": "python_version >= '3.8'",
             "version": "==2.16.2"
         },
+        "pydantic-settings": {
+            "hashes": [
+                "sha256:5f7bcaf9ad4419559dc5ac155c0324a9aeb2547c60471ee7c7d026f467a6b515",
+                "sha256:648d0a76673e69c51278979cba2e83cf16a23d57519bfd7e553d1c3f37db5560"
+            ],
+            "index": "pypi",
+            "markers": "python_version >= '3.8'",
+            "version": "==2.2.0"
+        },
         "pypika-tortoise": {
             "hashes": [
                 "sha256:2d68bbb7e377673743cff42aa1059f3a80228d411fbcae591e4465e173109fd8",
@@ -243,6 +252,14 @@
             ],
             "markers": "python_version >= '3.7' and python_version < '4.0'",
             "version": "==0.1.6"
+        },
+        "python-dotenv": {
+            "hashes": [
+                "sha256:e324ee90a023d808f1959c46bcbc04446a10ced277783dc6ee09987c37ec10ca",
+                "sha256:f7b63ef50f1b690dddf550d03497b66d609393b40b564ed0d674909a68ebf16a"
+            ],
+            "markers": "python_version >= '3.8'",
+            "version": "==1.0.1"
         },
         "pytz": {
             "hashes": [
