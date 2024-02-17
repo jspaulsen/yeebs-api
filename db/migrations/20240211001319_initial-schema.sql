@@ -17,8 +17,7 @@ CREATE TABLE authorization_token (
     origin token_origin, -- Specify the data type for the 'origin' column
     refresh_token VARCHAR(255),
     invalid_token BOOLEAN DEFAULT FALSE,
-    expires_at TIMESTAMP,
-    refresh_lock BOOLEAN DEFAULT FALSE,
+    refresh_lock TIMESTAMPTZ,
     last_refreshed_at TIMESTAMP
 );
 

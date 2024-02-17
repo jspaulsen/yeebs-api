@@ -5,7 +5,7 @@ from app.api import api
 
 
 @api.get("/healthcheck")
-async def healthcheck():
+async def healthcheck() -> JSONResponse:
     try:
         connection: BaseDBAsyncClient = connections.get("default")
 

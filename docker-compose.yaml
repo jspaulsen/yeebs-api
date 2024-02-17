@@ -4,10 +4,10 @@ services:
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: password
-      PGDATA: /data/postgres
+      # PGDATA: /data/postgres
       POSTGRES_DB: database
-    volumes:
-       - postgres:/data/postgres
+    # volumes:
+    #    - postgres:/data/postgres
     ports:
       - "5432:5432"
     restart: unless-stopped
@@ -23,11 +23,8 @@ services:
       DATABASE_URL: postgres://postgres:password@postgres:5432/database?sslmode=disable
       DB_WAIT: true
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     volumes:
       - ./db:/db
     command: ["up"]
-
-
-volumes:
-  postgres:

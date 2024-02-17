@@ -8,6 +8,10 @@ fastapi = "*"
 uvicorn = "*"
 tortoise-orm = {extras = ["asyncpg"], version = "*"}
 pydantic-settings = "*"
+requests = "*"
+python-json-logger = "*"
+joserfc = "*"
+cachetools = "*"
 
 [dev-packages]
 
