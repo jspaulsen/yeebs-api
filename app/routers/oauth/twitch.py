@@ -1,9 +1,14 @@
 import logging
-from fastapi import Request, Response
 
+from fastapi import Request
 from fastapi.responses import JSONResponse, RedirectResponse
+import pendulum
+
 from app.clients.twitch import TwitchClient
 from app.configuration import Configuration
+from app.models.sql.authorization_token import AuthorizationToken, Origin
+from app.models.sql.user import User
+from app.openid.twitch_jwt import TwitchOidcValidator
 
 from app.routers.oauth import oauth_router
 
@@ -20,12 +25,20 @@ async def twitch_oauth_callback(
     error_description: str | None = None,
 ) -> JSONResponse:
     configuration: Configuration = request.app.state.configuration
+    validator: TwitchOidcValidator = request.app.state.twitch_validator
+
     client = TwitchClient(
         configuration.twitch_client_id, 
         configuration.twitch_client_secret,
     )
 
     redirect_uri = configuration.redirect_host + "/oauth/twitch/callback"
+    frontend_url = configuration.frontend_url.rstrip("/")
+
+    response = RedirectResponse(
+        url=frontend_url,
+        status_code=303,
+    )
 
     if not code and not error:
         return JSONResponse(status_code=400, content={"error": "Invalid request"})
@@ -44,35 +57,56 @@ async def twitch_oauth_callback(
 
         if error_description:
             error = f"{error}: {error_description}"
+        
+        response = RedirectResponse(
+            url=frontend_url + f"/error?error={error}&error_description={error_description}",
+            status_code=302,
+        )
+    
+    # If we're given a code, we should exchange it for a token
+    else:
+        token = client.exchange_code_for_token(redirect_uri, code)
+        jwt = validator.validate_jwt(token.id_token)
 
-        # TODO: We could serve a nice template here or pass it onto the frontend with an error
-        # just assume www.yeebs.dev/oauth/twitch/callback?error=access_denied or something like that
-        return JSONResponse(status_code=400, content={"error": error})
+        # Create or update the user with the new token
+        user = await User.get_or_none(external_user_id=jwt.sub)
+        now = pendulum.now("utc")
 
-    token = client.exchange_code_for_token(redirect_uri, code)
+        if not user:
+            user = await User.create(
+                external_user_id=jwt.sub,
+                created_at=now,
+                updated_at=now,
+            )
+        
+        user.updated_at = now
+        await user.save()
 
-# {"access_token":"4cu8gpqju5dxfva3f381ye61guyu3w","expires_in":13919,"id_token":"eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6IjEifQ.eyJhdWQiOiJrZHNoa29pN3F5emRwZG5mdWRmYmFhNzc5dzF2NGMiLCJleHAiOjE3MDgyMTAzMjgsImlhdCI6MTcwODIwOTQyOCwiaXNzIjoiaHR0cHM6Ly9pZC50d2l0Y2gudHYvb2F1dGgyIiwic3ViIjoiMTUzNTc3MTI5IiwiYXpwIjoia2RzaGtvaTdxeXpkcGRuZnVkZmJhYTc3OXcxdjRjIiwicHJlZmVycmVkX3VzZXJuYW1lIjoiQ2FubmliYWxKZWVidXMifQ.sTpuuGebS9ng15dfCUTOU2C3bYNSzv9oaBCfUAmLIGm6v7wO5DyzSGsG4A-1rghrJoSMq9dmihkQC3qD2RuwYxi0W7WXbQGaRy9IOM2xZ4IdjRM-sjdypfhLw33fBSo3N_wFY9Sb6fj-5Ma5q_KZH8QqSb050KXBBXJ3Bc12p98shO-pNnr4M0-8KLo2E219Mho2p5spvaxSvg0TKXTEIBmuez8CjvvjO9WLfs0SbVL2d93nZOilaDRnK8ESJF1xN9cQEbRv0iNp-iFXMiRFhRjw8_rj5j5NEb3pjgYXMq1_txTbFrdKRcV1cl66kg1g3x9cYWG1Bk9IKocAsxrwEg","refresh_token":"vmpm5rpm5waju347gchho2kl3w4uitrbmzwjijlp5vpauhw4kn","scope":["bits:read","channel:read:ads","channel:read:redemptions","openid"],"token_type":"bearer"}
+        # Find an authorization token for the user; if it doesn't exist, create one
+        auth_token = await AuthorizationToken.get_or_none(user_id=user.id)
 
-    # TODO: This becomes a redirect to the frontend
-    # response = RedirectResponse(
-    #     url=configuration.frontend_url,
-    #     status_code=303,
-    # )
+        if not auth_token:
+            auth_token = await AuthorizationToken.create(
+                user=user,
+                refresh_token=token.refresh_token,
+                origin=Origin.Twitch,
+            )
 
-    response = JSONResponse(
-        status_code=200, 
-        content=token,
-    )
+        auth_token.refresh_token = token.refresh_token
+        await auth_token.save()
 
-    # response.set_cookie(
-    #     "twitch_access_token",
-    #     token["access_token"],
-    #     max_age=token["expires_in"],
-    #     httponly=True,
-    #     secure=configuration.secure_cookies,
-    # )
+        # Set the cookie for the user
+        response.set_cookie(
+            "twitch_id_token",
+            token.id_token,
+            max_age=jwt.exp - jwt.iat,
+            httponly=True,
+            secure=True,
+            samesite="strict",
+        )
     
     return response
+
 
 @oauth_router.get("/twitch/redirect")
 async def twitch_oauth_redirect(request: Request) -> RedirectResponse:

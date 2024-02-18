@@ -12,6 +12,7 @@ requests = "*"
 python-json-logger = "*"
 joserfc = "*"
 cachetools = "*"
+pendulum = "*"
 
 [dev-packages]
 

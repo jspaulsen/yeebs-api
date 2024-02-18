@@ -5,16 +5,21 @@ from fastapi import FastAPI
 from tortoise import Tortoise
 
 from app import logging
+from app.clients.twitch import TwitchClient
 from app.configuration import Configuration
-from app.exception_handlers import exception_handler
-from app.openid.twitch_jwt import TwitchOidcValidator
+from app.exception_handlers import exception_handler, token_exception_handler
+from app.openid.twitch_jwt import TokenException, TwitchOidcValidator
 from app.routers.oauth import oauth_router
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     configuration = Configuration()
-    twitch_validator = TwitchOidcValidator(configuration.twitch_client_id)
+    oidc_configuration = TwitchClient.get_openid_configuration()
+    twitch_validator = TwitchOidcValidator(
+        oidc_configuration,
+        configuration.twitch_client_id,
+    )
 
     # Configure logging
     logging.configure_logging(configuration.log_level)
@@ -36,3 +41,4 @@ api: FastAPI = FastAPI(lifespan=lifespan)
 api.include_router(oauth_router)
 
 api.add_exception_handler(Exception, exception_handler)
+api.add_exception_handler(TokenException, token_exception_handler)

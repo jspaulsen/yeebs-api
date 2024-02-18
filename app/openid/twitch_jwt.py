@@ -1,9 +1,15 @@
 from __future__ import annotations
 
 from joserfc import jwt
+from joserfc.errors import JoseError
 from joserfc.jwk import RSAKey
+from joserfc.rfc7519.registry import InvalidClaimError
 from pydantic import BaseModel
 from app.clients.twitch import TwitchOpenIdConfiguration
+
+
+class TokenException(InvalidClaimError):
+    pass
 
 
 class TwitchOidcValidator:
@@ -18,19 +24,25 @@ class TwitchOidcValidator:
         if not self.openid_configuration.jwks:
             raise ValueError('No valid JWKS found in the OpenID Configuration')
         
-        self.keys = [RSAKey(**key) for key in self.openid_configuration.jwks.keys]
+        self.keys = [RSAKey.import_key(key) for key in self.openid_configuration.jwks.keys]
         self.registry = jwt.JWTClaimsRegistry(
             iss={"essential": True, "value": openid_configuration.issuer},
             sub={"essential": True},
             aud={"essential": True, "value": client_id},
+            leeway=300,
         )
 
     def validate_jwt(self, token: str) -> TwitchJwt:
-        decoded = jwt.decode(token, self.keys)
-        claims = decoded.claims
+        # TODO: We need to select the right key for decoding; for now,
+        # we're just using the first key in the list
 
-        # Validate the token; this will raise an exception if the token is invalid
-        self.registry.validate(claims)
+        try:
+            decoded = jwt.decode(token, self.keys[0])
+            claims = decoded.claims
+            self.registry.validate(claims)
+        except JoseError as e:
+            raise TokenException from e
+        
         return TwitchJwt(**claims)
 
 

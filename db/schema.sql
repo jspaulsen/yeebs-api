@@ -28,18 +28,18 @@ SET default_table_access_method = heap;
 --
 
 CREATE TABLE public.application_user (
-    user_id integer NOT NULL,
+    id integer NOT NULL,
     external_user_id character varying(255) NOT NULL,
-    created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
-    updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+    updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP
 );
 
 
 --
--- Name: application_user_user_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: application_user_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
-CREATE SEQUENCE public.application_user_user_id_seq
+CREATE SEQUENCE public.application_user_id_seq
     AS integer
     START WITH 1
     INCREMENT BY 1
@@ -49,10 +49,10 @@ CREATE SEQUENCE public.application_user_user_id_seq
 
 
 --
--- Name: application_user_user_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: application_user_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
-ALTER SEQUENCE public.application_user_user_id_seq OWNED BY public.application_user.user_id;
+ALTER SEQUENCE public.application_user_id_seq OWNED BY public.application_user.id;
 
 
 --
@@ -60,21 +60,21 @@ ALTER SEQUENCE public.application_user_user_id_seq OWNED BY public.application_u
 --
 
 CREATE TABLE public.authorization_token (
-    authorization_id integer NOT NULL,
+    id integer NOT NULL,
     user_id integer,
     origin public.token_origin,
     refresh_token character varying(255),
     invalid_token boolean DEFAULT false,
     refresh_lock timestamp with time zone,
-    last_refreshed_at timestamp without time zone
+    last_refreshed_at timestamp with time zone
 );
 
 
 --
--- Name: authorization_token_authorization_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+-- Name: authorization_token_id_seq; Type: SEQUENCE; Schema: public; Owner: -
 --
 
-CREATE SEQUENCE public.authorization_token_authorization_id_seq
+CREATE SEQUENCE public.authorization_token_id_seq
     AS integer
     START WITH 1
     INCREMENT BY 1
@@ -84,10 +84,10 @@ CREATE SEQUENCE public.authorization_token_authorization_id_seq
 
 
 --
--- Name: authorization_token_authorization_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+-- Name: authorization_token_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
 --
 
-ALTER SEQUENCE public.authorization_token_authorization_id_seq OWNED BY public.authorization_token.authorization_id;
+ALTER SEQUENCE public.authorization_token_id_seq OWNED BY public.authorization_token.id;
 
 
 --
@@ -100,17 +100,17 @@ CREATE TABLE public.schema_migrations (
 
 
 --
--- Name: application_user user_id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: application_user id; Type: DEFAULT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.application_user ALTER COLUMN user_id SET DEFAULT nextval('public.application_user_user_id_seq'::regclass);
+ALTER TABLE ONLY public.application_user ALTER COLUMN id SET DEFAULT nextval('public.application_user_id_seq'::regclass);
 
 
 --
--- Name: authorization_token authorization_id; Type: DEFAULT; Schema: public; Owner: -
+-- Name: authorization_token id; Type: DEFAULT; Schema: public; Owner: -
 --
 
-ALTER TABLE ONLY public.authorization_token ALTER COLUMN authorization_id SET DEFAULT nextval('public.authorization_token_authorization_id_seq'::regclass);
+ALTER TABLE ONLY public.authorization_token ALTER COLUMN id SET DEFAULT nextval('public.authorization_token_id_seq'::regclass);
 
 
 --
@@ -126,7 +126,7 @@ ALTER TABLE ONLY public.application_user
 --
 
 ALTER TABLE ONLY public.application_user
-    ADD CONSTRAINT application_user_pkey PRIMARY KEY (user_id);
+    ADD CONSTRAINT application_user_pkey PRIMARY KEY (id);
 
 
 --
@@ -134,7 +134,7 @@ ALTER TABLE ONLY public.application_user
 --
 
 ALTER TABLE ONLY public.authorization_token
-    ADD CONSTRAINT authorization_token_pkey PRIMARY KEY (authorization_id);
+    ADD CONSTRAINT authorization_token_pkey PRIMARY KEY (id);
 
 
 --
@@ -150,7 +150,7 @@ ALTER TABLE ONLY public.schema_migrations
 --
 
 ALTER TABLE ONLY public.authorization_token
-    ADD CONSTRAINT authorization_token_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.application_user(user_id) ON DELETE CASCADE;
+    ADD CONSTRAINT authorization_token_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.application_user(id) ON DELETE CASCADE;
 
 
 --
