@@ -6,6 +6,7 @@ import pendulum
 
 from app.clients.twitch import TwitchClient
 from app.configuration import Configuration
+from app.access_token_manager import AccessTokenManager
 from app.models.sql.authorization_token import AuthorizationToken, Origin
 from app.models.sql.user import User
 from app.openid.twitch_jwt import TwitchOidcValidator
@@ -26,6 +27,7 @@ async def twitch_oauth_callback(
 ) -> JSONResponse:
     configuration: Configuration = request.app.state.configuration
     validator: TwitchOidcValidator = request.app.state.twitch_validator
+    token_manager: AccessTokenManager = request.app.state.token_manager
 
     client = TwitchClient(
         configuration.twitch_client_id, 
@@ -63,9 +65,8 @@ async def twitch_oauth_callback(
             status_code=302,
         )
     
-    # If we're given a code, we should exchange it for a token
-    else:
-        token = client.exchange_code_for_token(redirect_uri, code)
+    else: # If we're given a code, we should exchange it for a token
+        token = await client.exchange_code_for_token(redirect_uri, code)
         jwt = validator.validate_jwt(token.id_token)
 
         # Create or update the user with the new token
@@ -90,6 +91,7 @@ async def twitch_oauth_callback(
                 user=user,
                 refresh_token=token.refresh_token,
                 origin=Origin.Twitch,
+                expires_at=pendulum.now("utc").add(days=29) # https://dev.twitch.tv/docs/authentication/refresh-tokens/#refresh-token-lifecycle
             )
 
         auth_token.refresh_token = token.refresh_token
@@ -97,12 +99,18 @@ async def twitch_oauth_callback(
 
         # Set the cookie for the user
         response.set_cookie(
-            "twitch_id_token",
-            token.id_token,
-            max_age=jwt.exp - jwt.iat,
+            "access_token",
+            token.access_token,
+            max_age=token.expires_in,
             httponly=True,
             secure=True,
             samesite="strict",
+        )
+
+        token_manager.add_access_token(
+            "twitch",
+            user.external_user_id,
+            token,
         )
     
     return response

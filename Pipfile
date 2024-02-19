@@ -13,6 +13,7 @@ python-json-logger = "*"
 joserfc = "*"
 cachetools = "*"
 pendulum = "*"
+httpx = "*"
 
 [dev-packages]
 

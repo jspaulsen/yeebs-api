@@ -65,6 +65,7 @@ CREATE TABLE public.authorization_token (
     origin public.token_origin,
     refresh_token character varying(255),
     invalid_token boolean DEFAULT false,
+    expires_at timestamp with time zone NOT NULL,
     refresh_lock timestamp with time zone,
     last_refreshed_at timestamp with time zone
 );

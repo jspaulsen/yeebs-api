@@ -1,8 +1,10 @@
-from cachetools import TTLCache, cached
 from pydantic import BaseModel
+import httpx
 import requests
 
+from app.models.oauth_token import OAuthToken
 from app.openid.jwks import Jwks
+from app.clients.oauth_client import OAuthClient
 
 
 class TwitchOpenIdConfiguration(BaseModel):
@@ -24,16 +26,11 @@ class TwitchOpenIdConfiguration(BaseModel):
     jwks: Jwks
 
 
-class TwitchToken(BaseModel):
-    access_token: str
-    expires_in: int
+class TwitchToken(OAuthToken):
     id_token: str
-    refresh_token: str
-    scope: list[str]
-    token_type: str
 
 
-class TwitchClient:
+class TwitchClient(OAuthClient):
     def __init__(
         self,
         client_id: str,
@@ -42,8 +39,9 @@ class TwitchClient:
         self.client_id = client_id
         self.client_secret = client_secret
         self.url = "https://api.twitch.tv/helix"
+        self.client = httpx.AsyncClient()
     
-    def exchange_code_for_token(self, redirect_uri: str, code: str) -> TwitchToken:
+    async def exchange_code_for_token(self, redirect_uri: str, code: str) -> TwitchToken:
         url = "https://id.twitch.tv/oauth2/token"
 
         data = {
@@ -54,16 +52,17 @@ class TwitchClient:
             "redirect_uri": redirect_uri,
         }
 
-        response = requests.post(
-            url,
-            headers={"Content-Type": "application/x-www-form-urlencoded"},
-            data=data,
-        )
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                url,
+                headers={"Content-Type": "application/x-www-form-urlencoded"},
+                data=data,
+            )
 
-        response.raise_for_status()
-        return TwitchToken(**response.json())
+            response.raise_for_status()
+            return TwitchToken(**response.json())
 
-    def refresh_token(self, refresh_token: str) -> dict:
+    async def refresh_token(self, refresh_token: str) -> OAuthToken:
         url = "https://id.twitch.tv/oauth2/token"
 
         data = {
@@ -73,14 +72,15 @@ class TwitchClient:
             "refresh_token": refresh_token,
         }
 
-        response = requests.post(
-            url,
-            headers={"Content-Type": "application/x-www-form-urlencoded"},
-            data=data,
-        )
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                url,
+                headers={"Content-Type": "application/x-www-form-urlencoded"},
+                data=data,
+            )
 
-        response.raise_for_status()
-        return response.json()
+            response.raise_for_status()
+            return response.json()
     
     @staticmethod
     def get_openid_configuration() -> TwitchOpenIdConfiguration:

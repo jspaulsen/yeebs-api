@@ -15,10 +15,10 @@ CREATE TABLE authorization_token (
     id SERIAL PRIMARY KEY,
     user_id INTEGER REFERENCES application_user(id) ON DELETE CASCADE,
     origin token_origin, -- Specify the data type for the 'origin' column
-    refresh_token VARCHAR(255),
+    access_tokn VARCHAR(255),
+    refresh_token VARCHAR(255) not null,
     invalid_token BOOLEAN DEFAULT FALSE,
-    refresh_lock TIMESTAMPTZ,
-    last_refreshed_at TIMESTAMPTZ
+    expires_at TIMESTAMPTZ,
 );
 
 
