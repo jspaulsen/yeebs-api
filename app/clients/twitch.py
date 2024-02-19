@@ -26,8 +26,12 @@ class TwitchOpenIdConfiguration(BaseModel):
     jwks: Jwks
 
 
-class TwitchToken(OAuthToken):
-    id_token: str
+class TokenValidationResponse(BaseModel):
+    client_id: str
+    login: str
+    scopes: list[str]
+    user_id: str
+    expires_in: int
 
 
 class TwitchClient(OAuthClient):
@@ -41,7 +45,7 @@ class TwitchClient(OAuthClient):
         self.url = "https://api.twitch.tv/helix"
         self.client = httpx.AsyncClient()
     
-    async def exchange_code_for_token(self, redirect_uri: str, code: str) -> TwitchToken:
+    async def exchange_code_for_token(self, redirect_uri: str, code: str) -> OAuthToken:
         url = "https://id.twitch.tv/oauth2/token"
 
         data = {
@@ -60,7 +64,7 @@ class TwitchClient(OAuthClient):
             )
 
             response.raise_for_status()
-            return TwitchToken(**response.json())
+            return OAuthToken(**response.json())
 
     async def refresh_token(self, refresh_token: str) -> OAuthToken:
         url = "https://id.twitch.tv/oauth2/token"
@@ -81,7 +85,19 @@ class TwitchClient(OAuthClient):
 
             response.raise_for_status()
             return response.json()
-    
+        
+    async def validate_token(self, token: str) -> TokenValidationResponse:
+        url = "https://id.twitch.tv/oauth2/validate"
+
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                url,
+                headers={"Authorization": f"Bearer {token}"},
+            )
+
+            response.raise_for_status()
+            return TokenValidationResponse(**response.json())
+
     @staticmethod
     def get_openid_configuration() -> TwitchOpenIdConfiguration:
         url = "https://id.twitch.tv/oauth2/.well-known/openid-configuration"

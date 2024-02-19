@@ -26,7 +26,6 @@ async def twitch_oauth_callback(
     error_description: str | None = None,
 ) -> JSONResponse:
     configuration: Configuration = request.app.state.configuration
-    validator: TwitchOidcValidator = request.app.state.twitch_validator
     token_manager: AccessTokenManager = request.app.state.token_manager
 
     client = TwitchClient(
@@ -67,51 +66,36 @@ async def twitch_oauth_callback(
     
     else: # If we're given a code, we should exchange it for a token
         token = await client.exchange_code_for_token(redirect_uri, code)
-        jwt = validator.validate_jwt(token.id_token)
+        token_validation = await client.validate_token(token.access_token)
 
-        # Create or update the user with the new token
-        user = await User.get_or_none(external_user_id=jwt.sub)
-        now = pendulum.now("utc")
+        # Retrieve user information from token
+        external_user_id = token_validation.user_id
+        username = token_validation.login
+
+        # Create the user if they don't exist
+        user = await User.get_or_none(external_user_id=external_user_id)
 
         if not user:
             user = await User.create(
-                external_user_id=jwt.sub,
-                created_at=now,
-                updated_at=now,
-            )
-        
-        user.updated_at = now
-        await user.save()
-
-        # Find an authorization token for the user; if it doesn't exist, create one
-        auth_token = await AuthorizationToken.get_or_none(user_id=user.id)
-
-        if not auth_token:
-            auth_token = await AuthorizationToken.create(
-                user=user,
-                refresh_token=token.refresh_token,
-                origin=Origin.Twitch,
-                expires_at=pendulum.now("utc").add(days=29) # https://dev.twitch.tv/docs/authentication/refresh-tokens/#refresh-token-lifecycle
+                external_user_id=external_user_id,
+                username=username,
             )
 
-        auth_token.refresh_token = token.refresh_token
-        await auth_token.save()
+        # Add the access token to the database
+        await token_manager.add_access_token(Origin.Twitch, user.id, token)
 
+        # Need to generate a JWT for the user
+        # This will be used to authenticate the user in the frontend
+        # TODO: This changes,
         # Set the cookie for the user
-        response.set_cookie(
-            "access_token",
-            token.access_token,
-            max_age=token.expires_in,
-            httponly=True,
-            secure=True,
-            samesite="strict",
-        )
-
-        token_manager.add_access_token(
-            "twitch",
-            user.external_user_id,
-            token,
-        )
+        # response.set_cookie(
+        #     "access_token",
+        #     our_access_token,
+        #     max_age=600, # TODO
+        #     httponly=True,
+        #     secure=True,
+        #     samesite="strict",
+        # )
     
     return response
 

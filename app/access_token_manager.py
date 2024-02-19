@@ -1,12 +1,17 @@
 import logging
+import httpx
 
 from pydantic import BaseModel
 import pendulum
+from tortoise.transactions import in_transaction
 
 from app.clients.twitch import TwitchClient
 from app.configuration import Configuration
 from app.models.oauth_token import OAuthToken
 from app.models.sql.authorization_token import AuthorizationToken, Origin
+
+
+REDUCED_EXPIRATION = 60
 
 
 logger = logging.getLogger(__name__)
@@ -22,7 +27,6 @@ class AccessToken(BaseModel):
 
 class AccessTokenManager:
     def __init__(self, configuration: Configuration) -> None:
-        self.access_tokens: dict[str, AccessToken] = {}
         self.client_mapping = {
             Origin.Twitch: TwitchClient(
                 configuration.twitch_client_id,
@@ -30,53 +34,88 @@ class AccessTokenManager:
             ),
         }
     
-    def _add(self, service: str, sub_id: str, access_token: AccessToken) -> None:
-        self.access_tokens[f"{service}_{sub_id}"] = access_token
-
-    def add_access_token(self, service: str, sub_id: str, oauth_token: OAuthToken) -> None:
-        self._add(
-            service,
-            sub_id,
-            AccessToken(
-                access_token=oauth_token.access_token,
-                expires_at=pendulum.now().add(seconds=oauth_token.expires_in - 15),
-            ),
+    async def add_or_update_access_token(
+        self,
+        service: Origin,
+        user_id: str,
+        token: OAuthToken,
+    ) -> AuthorizationToken:
+        expires_at = pendulum.now().add(seconds=token.expires_in)
+        existing_token = (
+            await AuthorizationToken
+                .filter(user_id=user_id, origin=service)
+                .first()
         )
 
-    async def get_access_token(self, service: str, sub_id: str) -> str | None:
-        access_token = self.access_tokens.get(f"{service}_{sub_id}")
-
-        if not access_token or access_token.expires_at < pendulum.now():
-            client = self.client_mapping.get(service)
-
-            if not client:
-                return None
-            
-            auth_token = await AuthorizationToken.get_or_none(sub_id=sub_id, origin=service)
-
-            if not auth_token:
-                return None
-            
-            try:
-                token = await client.refresh_token(auth_token.refresh_token)
-            except Exception as e:
-                logger.exception(
-                    f"An error occurred while refreshing a token: {e}",
-                    extra={
-                        "error": e,
-                    },
-                )
-
-                return None
-            
-            auth_token.refresh_token = token.refresh_token
-            await auth_token.save()
-
-            access_token = AccessToken(
+        if not existing_token:
+            existing_token = await AuthorizationToken(
+                user_id=user_id,
+                origin=service,
                 access_token=token.access_token,
-                expires_at=pendulum.now().add(seconds=token.expires_in - 15),
+                refresh_token=token.refresh_token,
+                expires_at=expires_at,
             )
 
-            self._add(service, sub_id, access_token)
+        existing_token.access_token = token.access_token
+        existing_token.refresh_token = token.refresh_token
+        existing_token.expires_at = expires_at
+
+        await existing_token.save()
+        return existing_token
+
+    
+    async def get_access_token(self, service: Origin, user_id: str) -> str | None:
+        expire_ts = pendulum.now().add(seconds=REDUCED_EXPIRATION)
+        client = self.client_mapping.get(service)
+
+        if not client:
+            logger.error(
+                f"Requested access token for unknown service: {service}",
+                extra={
+                    "service": service,
+                    "user_id": user_id,
+                },
+            )
+
+            return None
         
-        return access_token.access_token
+        async with in_transaction():
+            token = (
+                await AuthorizationToken
+                    .filter(user_id=user_id, origin=service)
+                    .select_for_update() # lock the row
+                    .first()
+            )
+
+            if not token or token.invalid_token:
+                return None
+
+            # if the token is not expired (and won't expire in the next minute)
+            if token.expires_at > expire_ts:
+                return token.access_token
+            
+            try:
+                new_token: OAuthToken = await client.refresh_token(token.refresh_token)
+            except httpx.HTTPStatusError as e:
+                if e.response.status_code in (400, 401):
+                    token.invalid_token = True
+
+                    await token.save()
+                else:
+                    logger.exception(
+                        f"An error occurred while refreshing token: {e}",
+                        extra={
+                            "error": e,
+                            "token_id": token.id,
+                            "user_id": user_id,
+                        },
+                    )
+                
+                return None
+
+            token.refresh_token = new_token.refresh_token
+            token.access_token = new_token.access_token
+            token.expires_at = pendulum.now().add(seconds=new_token.expires_in)
+
+            await token.save()
+            return token.access_token

@@ -30,6 +30,7 @@ SET default_table_access_method = heap;
 CREATE TABLE public.application_user (
     id integer NOT NULL,
     external_user_id character varying(255) NOT NULL,
+    username character varying(255),
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
     updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP
 );
@@ -63,11 +64,10 @@ CREATE TABLE public.authorization_token (
     id integer NOT NULL,
     user_id integer,
     origin public.token_origin,
-    refresh_token character varying(255),
+    access_token character varying(255) NOT NULL,
+    refresh_token character varying(255) NOT NULL,
     invalid_token boolean DEFAULT false,
-    expires_at timestamp with time zone NOT NULL,
-    refresh_lock timestamp with time zone,
-    last_refreshed_at timestamp with time zone
+    expires_at timestamp with time zone
 );
 
 

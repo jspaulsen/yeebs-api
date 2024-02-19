@@ -16,6 +16,11 @@ pendulum = "*"
 httpx = "*"
 
 [dev-packages]
+pytest = "*"
+docker = "*"
+pytest-mock = "*"
+pytest-asyncio = "*"
+freezegun = "*"
 
 [requires]
 python_version = "3.11"
