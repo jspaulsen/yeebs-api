@@ -17,3 +17,17 @@ docker run --rm -it --network=host -v "$(pwd)/db:/db" ghcr.io/amacneil/dbmate ne
 ```shell
 docker build --target production -t abc .
 ```
+
+### Generating AES Key
+
+Python can be used to generate a key for AES encryption. This can be done using the following code:
+
+```python
+import secrets
+import codecs
+
+key = secrets.token_bytes(16)
+hex_key = codecs.encode(key, 'hex').decode()
+```
+
+Alternatively, _any_ 32 character hex string can be used as a key as long as it's random.

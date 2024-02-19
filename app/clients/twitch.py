@@ -1,29 +1,8 @@
 from pydantic import BaseModel
 import httpx
-import requests
 
 from app.models.oauth_token import OAuthToken
-from app.openid.jwks import Jwks
 from app.clients.oauth_client import OAuthClient
-
-
-class TwitchOpenIdConfiguration(BaseModel):
-    authorization_endpoint: str
-    claims_parameter_supported: bool
-    claims_supported: list[str]
-    id_token_signing_alg_values_supported: list[str]
-    issuer: str
-    jwks_uri: str
-    response_types_supported: list[str]
-    scopes_supported: list[str]
-    subject_types_supported: list[str]
-    token_endpoint: str
-    token_endpoint_auth_methods_supported: list[str]
-    userinfo_endpoint: str
-
-    # This is a deviation from the regular format,
-    # but it abstracts multiple api calls into a single call
-    jwks: Jwks
 
 
 class TokenValidationResponse(BaseModel):
@@ -97,22 +76,3 @@ class TwitchClient(OAuthClient):
 
             response.raise_for_status()
             return TokenValidationResponse(**response.json())
-
-    @staticmethod
-    def get_openid_configuration() -> TwitchOpenIdConfiguration:
-        url = "https://id.twitch.tv/oauth2/.well-known/openid-configuration"
-
-        oidc_response = requests.get(url)
-        oidc_response.raise_for_status()
-        oidc_json = oidc_response.json()
-
-        # Call for the jwks and cache it
-        jwks_response = requests.get(oidc_json.get("jwks_uri"))
-        jwks_response.raise_for_status()
-
-        openid_configuration = TwitchOpenIdConfiguration(
-            **oidc_response.json(),
-            jwks=Jwks(**jwks_response.json()),
-        )
-
-        return openid_configuration

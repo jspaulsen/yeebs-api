@@ -1,3 +1,4 @@
+import asyncio
 import os
 
 from docker import DockerClient
@@ -11,6 +12,7 @@ os.environ["DATABASE_URL"] = "postgres://test_user:test_pass@localhost:5432/data
 os.environ["LOG_LEVEL"] = "DEBUG"
 os.environ["TWITCH_CLIENT_ID"] = "test_client_id"
 os.environ["TWITCH_CLIENT_SECRET"] = "test_client_secret"
+os.environ['AES_ENCRYPTION_KEY'] = '5d70a2b6386db77d88c4b7be20ccf37a'
 
 
 @pytest.fixture(scope="session")
@@ -103,9 +105,24 @@ def setup_database():
             network.remove()
 
 
-@pytest_asyncio.fixture
+@pytest_asyncio.fixture(scope="session")
 async def setup_tortoise(setup_database):
     await Tortoise.init(
         db_url=setup_database,
         modules={"models": ["app.models.sql"]},
     )
+
+
+# Required for pytest-asyncio to work 
+# with Tortoise / running async tests simultaneously
+@pytest.yield_fixture(scope="session")
+def event_loop(request):
+    loop = (
+        asyncio
+            .get_event_loop_policy()
+            .new_event_loop()
+    )
+
+    yield loop
+
+    loop.close()

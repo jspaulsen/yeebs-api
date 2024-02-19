@@ -34,7 +34,7 @@ class AccessTokenManager:
             ),
         }
     
-    async def add_or_update_access_token(
+    async def upsert_access_token(
         self,
         service: Origin,
         user_id: str,

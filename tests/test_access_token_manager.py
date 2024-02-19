@@ -1,3 +1,4 @@
+import uuid
 import freezegun
 import httpx
 import pendulum
@@ -12,19 +13,20 @@ from app.models.sql.authorization_token import AuthorizationToken, Origin
 from app.models.sql.user import User
 
 
+from tortoise.contrib.test import initializer, finalizer
+
 @pytest_asyncio.fixture
 async def setup_user(setup_tortoise):
-    user, _ = await User.update_or_create(
-        id=1,
+    user = await User.create(
         username="test_user",
-        external_user_id="1",
+        external_user_id=str(uuid.uuid4()),
     )
 
     yield user
     await user.delete()
-    
 
 
+@pytest.mark.asyncio(scope="class")
 class TestAccessTokenManger:
     @pytest.mark.asyncio
     @freezegun.freeze_time("2021-01-01T00:00:00Z")
@@ -43,7 +45,7 @@ class TestAccessTokenManger:
             token_type="bearer",
         )
         
-        result = await access_token_manager.add_or_update_access_token(
+        result = await access_token_manager.upsert_access_token(
             Origin.Twitch,
             setup_user.id,
             oauth_token,
@@ -85,7 +87,7 @@ class TestAccessTokenManger:
             token_type="bearer",
         )
 
-        result = await access_token_manager.add_or_update_access_token(
+        result = await access_token_manager.upsert_access_token(
             Origin.Twitch,
             setup_user.id,
             oauth_token,

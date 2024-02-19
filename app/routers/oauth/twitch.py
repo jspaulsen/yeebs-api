@@ -7,9 +7,8 @@ import pendulum
 from app.clients.twitch import TwitchClient
 from app.configuration import Configuration
 from app.access_token_manager import AccessTokenManager
-from app.models.sql.authorization_token import AuthorizationToken, Origin
+from app.models.sql.authorization_token import Origin
 from app.models.sql.user import User
-from app.openid.twitch_jwt import TwitchOidcValidator
 
 from app.routers.oauth import oauth_router
 
@@ -82,7 +81,7 @@ async def twitch_oauth_callback(
             )
 
         # Add the access token to the database
-        await token_manager.add_access_token(Origin.Twitch, user.id, token)
+        await token_manager.upsert_access_token(Origin.Twitch, user.id, token)
 
         # Need to generate a JWT for the user
         # This will be used to authenticate the user in the frontend
