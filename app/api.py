@@ -7,15 +7,17 @@ from tortoise import Tortoise
 from app import logging
 from app.clients.twitch import TwitchClient
 from app.configuration import Configuration
-from app.access_token_manager import AccessTokenManager
+from app.services.authorization import Authorization
 from app.exception_handlers import exception_handler
 from app.routers.oauth import oauth_router
+from app.services.identity import Identity
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     configuration = Configuration()
-    token_manager = AccessTokenManager(configuration)
+    token_manager = Authorization(configuration)
+    identity = Identity(configuration)
 
     # Configure logging
     logging.configure_logging(configuration.log_level)
@@ -27,6 +29,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
     app.state.configuration = configuration
     app.state.token_manager = token_manager
+    app.state.identity = identity
 
     # get background tasks
     app.state.background_tasks = []

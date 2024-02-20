@@ -92,6 +92,39 @@ ALTER SEQUENCE public.authorization_token_id_seq OWNED BY public.authorization_t
 
 
 --
+-- Name: refresh_token; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.refresh_token (
+    id integer NOT NULL,
+    user_id integer,
+    refresh_token character varying(255) NOT NULL,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+    invalidated_at timestamp with time zone
+);
+
+
+--
+-- Name: refresh_token_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.refresh_token_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: refresh_token_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.refresh_token_id_seq OWNED BY public.refresh_token.id;
+
+
+--
 -- Name: schema_migrations; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -112,6 +145,13 @@ ALTER TABLE ONLY public.application_user ALTER COLUMN id SET DEFAULT nextval('pu
 --
 
 ALTER TABLE ONLY public.authorization_token ALTER COLUMN id SET DEFAULT nextval('public.authorization_token_id_seq'::regclass);
+
+
+--
+-- Name: refresh_token id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.refresh_token ALTER COLUMN id SET DEFAULT nextval('public.refresh_token_id_seq'::regclass);
 
 
 --
@@ -139,6 +179,22 @@ ALTER TABLE ONLY public.authorization_token
 
 
 --
+-- Name: refresh_token refresh_token_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.refresh_token
+    ADD CONSTRAINT refresh_token_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: refresh_token refresh_token_refresh_token_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.refresh_token
+    ADD CONSTRAINT refresh_token_refresh_token_key UNIQUE (refresh_token);
+
+
+--
 -- Name: schema_migrations schema_migrations_pkey; Type: CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -152,6 +208,14 @@ ALTER TABLE ONLY public.schema_migrations
 
 ALTER TABLE ONLY public.authorization_token
     ADD CONSTRAINT authorization_token_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.application_user(id) ON DELETE CASCADE;
+
+
+--
+-- Name: refresh_token refresh_token_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.refresh_token
+    ADD CONSTRAINT refresh_token_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.application_user(id) ON DELETE CASCADE;
 
 
 --

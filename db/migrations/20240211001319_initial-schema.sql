@@ -23,9 +23,19 @@ CREATE TABLE authorization_token (
 );
 
 
+CREATE TABLE refresh_token (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER REFERENCES application_user(id) ON DELETE CASCADE,
+    refresh_token VARCHAR(255) NOT NULL UNIQUE,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    invalidated_at TIMESTAMPTZ
+);
+
+
 -- migrate:down
 
 DROP TABLE authorization_token;
 DROP TABLE user;
 DROP TYPE token_origin;
+DROP TABLE refresh_token;
 

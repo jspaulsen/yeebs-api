@@ -6,7 +6,7 @@ import pendulum
 
 from app.clients.twitch import TwitchClient
 from app.configuration import Configuration
-from app.access_token_manager import AccessTokenManager
+from app.services.authorization import Authorization
 from app.models.sql.authorization_token import Origin
 from app.models.sql.user import User
 
@@ -25,7 +25,7 @@ async def twitch_oauth_callback(
     error_description: str | None = None,
 ) -> JSONResponse:
     configuration: Configuration = request.app.state.configuration
-    token_manager: AccessTokenManager = request.app.state.token_manager
+    token_manager: Authorization = request.app.state.token_manager
 
     client = TwitchClient(
         configuration.twitch_client_id, 

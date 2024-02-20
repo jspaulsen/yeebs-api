@@ -1,11 +1,9 @@
-import uuid
 import freezegun
 import httpx
 import pendulum
 import pytest
-import pytest_asyncio
 
-from app.access_token_manager import AccessTokenManager
+from app.services.authorization import Authorization
 from app.clients.twitch import TwitchClient
 from app.configuration import Configuration
 from app.models.oauth_token import OAuthToken
@@ -13,26 +11,13 @@ from app.models.sql.authorization_token import AuthorizationToken, Origin
 from app.models.sql.user import User
 
 
-from tortoise.contrib.test import initializer, finalizer
-
-@pytest_asyncio.fixture
-async def setup_user(setup_tortoise):
-    user = await User.create(
-        username="test_user",
-        external_user_id=str(uuid.uuid4()),
-    )
-
-    yield user
-    await user.delete()
-
-
 @pytest.mark.asyncio(scope="class")
-class TestAccessTokenManger:
+class TestAuthorization:
     @pytest.mark.asyncio
     @freezegun.freeze_time("2021-01-01T00:00:00Z")
     async def test_add_access_token(self, setup_user):
         configuration = Configuration()
-        access_token_manager = AccessTokenManager(configuration)
+        access_token_manager = Authorization(configuration)
 
         setup_user: User = setup_user
         now = pendulum.now()
@@ -64,7 +49,7 @@ class TestAccessTokenManger:
     @freezegun.freeze_time("2021-01-01T00:00:00Z")
     async def test_update_access_token(self, setup_user):
         configuration = Configuration()
-        access_token_manager = AccessTokenManager(configuration)
+        access_token_manager = Authorization(configuration)
         setup_user: User = setup_user
 
         now = pendulum.now()
@@ -106,7 +91,7 @@ class TestAccessTokenManger:
     @freezegun.freeze_time("2021-01-01T00:00:00Z")
     async def test_get_access_token(self, setup_user):
         configuration = Configuration()
-        access_token_manager = AccessTokenManager(configuration)
+        access_token_manager = Authorization(configuration)
         setup_user: User = setup_user
 
         now = pendulum.now()
@@ -127,7 +112,7 @@ class TestAccessTokenManger:
     @freezegun.freeze_time("2021-01-01T00:00:00Z")
     async def test_get_access_token_refresh(self, setup_user, mocker):
         configuration = Configuration()
-        access_token_manager = AccessTokenManager(configuration)
+        access_token_manager = Authorization(configuration)
         setup_user: User = setup_user
 
         now = pendulum.now()
@@ -171,7 +156,7 @@ class TestAccessTokenManger:
     @freezegun.freeze_time("2021-01-01T00:00:00Z")
     async def test_get_access_token_invalid_token(self, setup_user):
         configuration = Configuration()
-        access_token_manager = AccessTokenManager(configuration)
+        access_token_manager = Authorization(configuration)
         setup_user: User = setup_user
 
         now = pendulum.now()
@@ -193,7 +178,7 @@ class TestAccessTokenManger:
     @freezegun.freeze_time("2021-01-01T00:00:00Z")
     async def test_get_access_token_refresh_failed(self, setup_user, mocker):
         configuration = Configuration()
-        access_token_manager = AccessTokenManager(configuration)
+        access_token_manager = Authorization(configuration)
         setup_user: User = setup_user
 
         now = pendulum.now()

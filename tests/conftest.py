@@ -1,5 +1,6 @@
 import asyncio
 import os
+import uuid
 
 from docker import DockerClient
 # from fastapi.testclient import TestClient
@@ -7,12 +8,15 @@ import pytest
 import pytest_asyncio
 from tortoise import Tortoise
 
+from app.models.sql.user import User
+
 
 os.environ["DATABASE_URL"] = "postgres://test_user:test_pass@localhost:5432/database"
 os.environ["LOG_LEVEL"] = "DEBUG"
 os.environ["TWITCH_CLIENT_ID"] = "test_client_id"
 os.environ["TWITCH_CLIENT_SECRET"] = "test_client_secret"
 os.environ['AES_ENCRYPTION_KEY'] = '5d70a2b6386db77d88c4b7be20ccf37a'
+os.environ['JWT_SECRET_KEY'] = '5d70a2b6386db77d88c4b7be20ccf37a'
 
 
 @pytest.fixture(scope="session")
@@ -111,6 +115,17 @@ async def setup_tortoise(setup_database):
         db_url=setup_database,
         modules={"models": ["app.models.sql"]},
     )
+
+
+@pytest_asyncio.fixture
+async def setup_user(setup_tortoise):
+    user = await User.create(
+        username="test_user",
+        external_user_id=str(uuid.uuid4()),
+    )
+
+    yield user
+    await user.delete()
 
 
 # Required for pytest-asyncio to work 

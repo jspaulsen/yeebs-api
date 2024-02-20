@@ -3,7 +3,6 @@ from pydantic import GetCoreSchemaHandler, ValidationInfo
 from pydantic_core import core_schema
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-# bytes.fromhex(hex_string)
 
 class ByteString(bytes):
     @staticmethod
@@ -18,10 +17,6 @@ class ByteString(bytes):
     ) -> core_schema.CoreSchema:
         return core_schema.with_info_plain_validator_function(cls.fromhex)
     
-    # @classmethod
-    # def __pydantic_get_validators__(cls):
-    #     yield cls.validate
-
 
 class Configuration(BaseSettings):
     twitch_client_id: str
@@ -35,3 +30,6 @@ class Configuration(BaseSettings):
 
     model_config = SettingsConfigDict(env_file='.env')
     aes_encryption_key: ByteString
+    jwt_secret_key: bytes
+
+    jwt_expiration: int = 3600
