@@ -11,6 +11,7 @@ from app.models.sql.authorization_token import Origin
 from app.models.sql.user import User
 
 from app.routers.oauth import oauth_router
+from app.services.identity import Identity
 
 
 logger = logging.getLogger(__name__)
@@ -26,6 +27,7 @@ async def twitch_oauth_callback(
 ) -> JSONResponse:
     configuration: Configuration = request.app.state.configuration
     token_manager: Authorization = request.app.state.token_manager
+    identity: Identity = request.app.state.identity
 
     client = TwitchClient(
         configuration.twitch_client_id, 

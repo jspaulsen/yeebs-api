@@ -1,5 +1,6 @@
 import asyncio
 import os
+import time
 import uuid
 
 from docker import DockerClient
@@ -102,8 +103,7 @@ def setup_database():
         yield os.environ["DATABASE_URL"]
     finally:
         for container in containers:
-            container.stop()
-            container.remove()
+            container.remove(force=True)
         
         for network in networks:
             network.remove()

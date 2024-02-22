@@ -2,6 +2,7 @@ import freezegun
 import httpx
 import pendulum
 import pytest
+from app.models.encrypted import Encrypted
 
 from app.services.authorization import Authorization
 from app.clients.twitch import TwitchClient
@@ -11,13 +12,13 @@ from app.models.sql.authorization_token import AuthorizationToken, Origin
 from app.models.sql.user import User
 
 
-@pytest.mark.asyncio(scope="class")
 class TestAuthorization:
-    @pytest.mark.asyncio
     @freezegun.freeze_time("2021-01-01T00:00:00Z")
+    @pytest.mark.asyncio(scope="session")
     async def test_add_access_token(self, setup_user):
         configuration = Configuration()
         access_token_manager = Authorization(configuration)
+        encrypted = Encrypted(configuration.aes_encryption_key)
 
         setup_user: User = setup_user
         now = pendulum.now()
@@ -38,18 +39,21 @@ class TestAuthorization:
 
         # Fetch token from database
         db_token = await AuthorizationToken.filter(id=result.id).first()
+        refresh_token = encrypted.decrypt(db_token.refresh_token)
+        access_token = encrypted.decrypt(db_token.access_token)
 
         assert db_token.user_id == setup_user.id
         assert db_token.origin == Origin.Twitch
-        assert db_token.access_token == "test_access_token"
-        assert db_token.refresh_token == "test_refresh_token"
+        assert access_token == "test_access_token"
+        assert refresh_token == "test_refresh_token"
         assert db_token.expires_at == now.add(seconds=360)
     
-    @pytest.mark.asyncio
     @freezegun.freeze_time("2021-01-01T00:00:00Z")
+    @pytest.mark.asyncio(scope="session")
     async def test_update_access_token(self, setup_user):
         configuration = Configuration()
         access_token_manager = Authorization(configuration)
+        encrypted = Encrypted(configuration.aes_encryption_key)
         setup_user: User = setup_user
 
         now = pendulum.now()
@@ -80,15 +84,17 @@ class TestAuthorization:
 
         # Fetch token from database
         db_token = await AuthorizationToken.filter(id=result.id).first()
+        refresh_token = encrypted.decrypt(db_token.refresh_token)
+        access_token = encrypted.decrypt(db_token.access_token)
 
         assert db_token.user_id == setup_user.id
         assert db_token.origin == Origin.Twitch
-        assert db_token.access_token == "new_access_token"
-        assert db_token.refresh_token == "new_refresh_token"
+        assert access_token == "new_access_token"
+        assert refresh_token == "new_refresh_token"
         assert db_token.expires_at == now.add(seconds=360)
 
-    @pytest.mark.asyncio
     @freezegun.freeze_time("2021-01-01T00:00:00Z")
+    @pytest.mark.asyncio(scope="session")
     async def test_get_access_token(self, setup_user):
         configuration = Configuration()
         access_token_manager = Authorization(configuration)
@@ -108,11 +114,12 @@ class TestAuthorization:
         token = await access_token_manager.get_access_token(Origin.Twitch, setup_user.id)
         assert token == "access_token"
 
-    @pytest.mark.asyncio
     @freezegun.freeze_time("2021-01-01T00:00:00Z")
+    @pytest.mark.asyncio(scope="session")
     async def test_get_access_token_refresh(self, setup_user, mocker):
         configuration = Configuration()
         access_token_manager = Authorization(configuration)
+        encrypted = Encrypted(configuration.aes_encryption_key)
         setup_user: User = setup_user
 
         now = pendulum.now()
@@ -147,13 +154,15 @@ class TestAuthorization:
 
         # fetch token from database
         db_token = await AuthorizationToken.filter(id=existing_token.id).first()
+        refresh_token = encrypted.decrypt(db_token.refresh_token)
+        access_token = encrypted.decrypt(db_token.access_token)
 
-        assert db_token.access_token == "new_access_token"
-        assert db_token.refresh_token == "new_refresh_token"
+        assert access_token == "new_access_token"
+        assert refresh_token == "new_refresh_token"
         assert db_token.expires_at == now.add(seconds=360)
     
-    @pytest.mark.asyncio
     @freezegun.freeze_time("2021-01-01T00:00:00Z")
+    @pytest.mark.asyncio(scope="session")
     async def test_get_access_token_invalid_token(self, setup_user):
         configuration = Configuration()
         access_token_manager = Authorization(configuration)
@@ -174,8 +183,8 @@ class TestAuthorization:
         token = await access_token_manager.get_access_token(Origin.Twitch, setup_user.id)
         assert token is None
 
-    @pytest.mark.asyncio
     @freezegun.freeze_time("2021-01-01T00:00:00Z")
+    @pytest.mark.asyncio(scope="session")
     async def test_get_access_token_refresh_failed(self, setup_user, mocker):
         configuration = Configuration()
         access_token_manager = Authorization(configuration)

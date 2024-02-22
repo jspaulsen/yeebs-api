@@ -1,19 +1,21 @@
 from __future__ import annotations
-from typing import Self
+import hashlib
 
 from Crypto.Cipher import AES
 
 
-class EncryptedString:
-    @staticmethod
-    def decrypt(secret_key: bytes, data: str) -> str:
+class Encrypted:
+    def __init__(self, secret_key: bytes) -> None:
+        self.secret_key = secret_key
+    
+    def decrypt(self, data: str) -> str:
         if '|' not in data:
             raise ValueError("Invalid encrypted string")
         
         secret, iv = data.split("|")
 
         cipher = AES.new(
-            secret_key,
+            self.secret_key,
             AES.MODE_CFB,
             iv=bytes.fromhex(iv),
         )
@@ -24,10 +26,9 @@ class EncryptedString:
             )
         ).decode("utf-8")
     
-    @staticmethod
-    def encrypt(secret_key: bytes, data: str | bytes) -> str:
+    def encrypt(self, data: str | bytes) -> str:
         cipher = AES.new(
-            secret_key,
+            self.secret_key,
             AES.MODE_CFB,
         )
 
@@ -38,3 +39,11 @@ class EncryptedString:
         iv: bytes = cipher.iv
 
         return f"{cipher_text.hex()}|{iv.hex()}"
+
+    @staticmethod
+    def hash(data: str) -> str:
+        return hashlib.sha256(
+            data.encode(
+                "utf-8"
+            )
+        ).hexdigest()

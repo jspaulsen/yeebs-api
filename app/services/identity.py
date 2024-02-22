@@ -3,7 +3,8 @@ import pendulum
 from tortoise.transactions import in_transaction
 
 from app.configuration import Configuration
-from app.identity.jwt import AccessToken, Jwt, JwtHeader, JwtPayload
+from app.identity.jwt import AccessToken, Jwt
+from app.models.encrypted import Encrypted
 from app.models.sql.refresh_token import RefreshToken
 from app.models.sql.user import User
 
@@ -18,6 +19,7 @@ class Identity:
 
     async def create_access_token(self, user: User) -> AccessToken:
         old_token = await RefreshToken.get_or_none(user_id=user.id)
+        new_refresh_token = random_refresh_token()
 
         # if the user already has a refresh token, we should invalidate it
         if old_token:
@@ -26,7 +28,8 @@ class Identity:
 
         new_refresh_token = RefreshToken(
             user_id=user.id,
-            refresh_token=random_refresh_token(),
+            refresh_token=new_refresh_token,
+            refresh_token_hash=Encrypted.hash(new_refresh_token),
         )
 
         await new_refresh_token.save()
@@ -47,7 +50,10 @@ class Identity:
     
 
     async def refresh_token(self, refresh_token: str) -> AccessToken | None:
-        old_token = await RefreshToken.get(refresh_token=refresh_token)
+        refresh_token_hash = Encrypted.hash(refresh_token)
+        old_token = await RefreshToken.get(
+            refresh_token_hash=refresh_token_hash,
+        )
 
         if not old_token or old_token.invalidated_at:
             return None
@@ -57,10 +63,13 @@ class Identity:
         if not user:
             return None
         
-        with await in_transaction():
+        async with in_transaction():
+            generated_secret = random_refresh_token()
+
             new_refresh_token = RefreshToken(
                 user_id=user.id,
-                refresh_token=random_refresh_token(),
+                refresh_token=generated_secret,
+                refresh_token_hash=Encrypted.hash(generated_secret),
             )
 
             old_token.invalidated_at = pendulum.now()

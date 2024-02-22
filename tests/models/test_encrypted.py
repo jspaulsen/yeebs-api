@@ -3,7 +3,7 @@ import secrets
 from Crypto.Cipher import AES
 import pytest
 
-from app.models.encrypted import EncryptedString
+from app.models.encrypted import Encrypted
 
 
 @pytest.fixture
@@ -15,8 +15,9 @@ class TestEncryptedString:
     def test_encrypt(self, generate_secret_key):
         secret_key = generate_secret_key
         data = "this is a test data string"
+        encrypt = Encrypted(secret_key)
 
-        encrypted = EncryptedString.encrypt(secret_key, data)
+        encrypted = encrypt.encrypt(data)
 
         assert '|' in encrypted
 
@@ -38,8 +39,9 @@ class TestEncryptedString:
     def test_decrypt(self, generate_secret_key):
         secret_key = generate_secret_key
         data = "this is a test data string"
+        encrypt = Encrypted(secret_key)
 
-        encrypted = EncryptedString.encrypt(secret_key, data)
-        decrypted = EncryptedString.decrypt(secret_key, encrypted)
+        encrypted = encrypt.encrypt(data)
+        decrypted = encrypt.decrypt(encrypted)
 
         assert decrypted == data

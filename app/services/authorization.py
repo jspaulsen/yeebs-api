@@ -7,7 +7,7 @@ from tortoise.transactions import in_transaction
 
 from app.clients.twitch import TwitchClient
 from app.configuration import Configuration
-from app.models.encrypted import EncryptedString
+from app.models.encrypted import Encrypted
 from app.models.oauth_token import OAuthToken
 from app.models.sql.authorization_token import AuthorizationToken, Origin
 
@@ -42,9 +42,10 @@ class Authorization:
         user_id: str,
         token: OAuthToken,
     ) -> AuthorizationToken:
+        encrypted = Encrypted(self.configuration.aes_encryption_key)
         expires_at = pendulum.now().add(seconds=token.expires_in)
-        access_token = EncryptedString.encrypt(self.configuration.aes_encryption_key, token.access_token)
-        refresh_token = EncryptedString.encrypt(self.configuration.aes_encryption_key, token.refresh_token)
+        access_token = encrypted.encrypt(token.access_token)
+        refresh_token = encrypted.encrypt(token.refresh_token)
 
         existing_token = (
             await AuthorizationToken
@@ -118,12 +119,13 @@ class Authorization:
                 
                 return None
             
-            access_token = EncryptedString.encrypt(self.configuration.aes_encryption_key, new_token.access_token)
-            refresh_token = EncryptedString.encrypt(self.configuration.aes_encryption_key, new_token.refresh_token)
+            encrypted = Encrypted(self.configuration.aes_encryption_key)
+            access_token = encrypted.encrypt(new_token.access_token)
+            refresh_token = encrypted.encrypt(new_token.refresh_token)
 
-            token.access_token = access_token.encode()
-            token.refresh_token = refresh_token.encode()
+            token.access_token = access_token
+            token.refresh_token = refresh_token
             token.expires_at = pendulum.now().add(seconds=new_token.expires_in)
 
             await token.save()
-            return token.access_token
+            return new_token.access_token
