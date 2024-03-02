@@ -1,0 +1,30 @@
+services:
+  postgres:
+    image: postgres:16-bookworm
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      # PGDATA: /data/postgres
+      POSTGRES_DB: database
+    # volumes:
+    #    - postgres:/data/postgres
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5000
+
+  dbmate:
+    image: ghcr.io/amacneil/dbmate
+    environment:
+      DATABASE_URL: postgres://postgres:password@postgres:5432/database?sslmode=disable
+      DB_WAIT: true
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./db:/db
+    command: ["up"]
