@@ -5,7 +5,6 @@ from fastapi import Request
 from fastapi.responses import JSONResponse
 
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -20,4 +19,3 @@ def exception_handler(_: Request, exc: Exception) -> JSONResponse:
         status_code=500, 
         content={"error": "Internal server error"}
     )
-

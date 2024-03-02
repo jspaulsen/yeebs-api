@@ -85,19 +85,17 @@ async def twitch_oauth_callback(
         # Add the access token to the database
         await token_manager.upsert_access_token(Origin.Twitch, user.id, token)
 
-        # Need to generate a JWT for the user
-        # This will be used to authenticate the user in the frontend
-        # TODO: This changes,
-        # Set the cookie for the user
-        # response.set_cookie(
-        #     "access_token",
-        #     our_access_token,
-        #     max_age=600, # TODO
-        #     httponly=True,
-        #     secure=True,
-        #     samesite="strict",
-        # )
-    
+        # Generate an access token for the user
+        access_token = await identity.create_access_token(user)
+
+        response.set_cookie(
+            "access_token",
+            access_token.model_dump_json(),
+            max_age=access_token.expires_in,
+            httponly=True,
+            secure=False,
+        )
+
     return response
 
 

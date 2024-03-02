@@ -99,6 +99,7 @@ CREATE TABLE public.refresh_token (
     id integer NOT NULL,
     user_id integer,
     refresh_token character varying(255) NOT NULL,
+    refresh_token_hash character varying(255) NOT NULL,
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
     invalidated_at timestamp with time zone
 );
@@ -184,6 +185,14 @@ ALTER TABLE ONLY public.authorization_token
 
 ALTER TABLE ONLY public.refresh_token
     ADD CONSTRAINT refresh_token_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: refresh_token refresh_token_refresh_token_hash_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.refresh_token
+    ADD CONSTRAINT refresh_token_refresh_token_hash_key UNIQUE (refresh_token_hash);
 
 
 --

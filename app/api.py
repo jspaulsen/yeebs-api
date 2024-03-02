@@ -1,16 +1,25 @@
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, Request
 from tortoise import Tortoise
 
 from app import logging
-from app.clients.twitch import TwitchClient
 from app.configuration import Configuration
+from app.identity.jwt import Jwt
 from app.services.authorization import Authorization
 from app.exception_handlers import exception_handler
 from app.routers.oauth import oauth_router
 from app.services.identity import Identity
+
+
+def jwt_dependency(request: Request) -> Jwt:
+    try:
+        jwt: Jwt = request.state.jwt
+    except AttributeError:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    return jwt
 
 
 @asynccontextmanager

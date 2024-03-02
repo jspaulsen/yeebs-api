@@ -26,10 +26,11 @@ class Configuration(BaseSettings):
     redirect_host: str = "http://localhost:3000"
 
     twitch_scope: list[str] = ['bits:read', 'channel:read:redemptions', 'channel:read:ads']
-    frontend_url: str = 'https://www.yeebs.dev'
+    frontend_url: str = 'http://localhost:3000/userinfo' # 'https://www.yeebs.dev'
 
     model_config = SettingsConfigDict(env_file='.env')
     aes_encryption_key: ByteString
     jwt_secret_key: bytes
-
+    
+    is_local: bool = False
     jwt_expiration: int = 3600

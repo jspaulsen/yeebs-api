@@ -18,7 +18,7 @@ class TestIdentity:
 
         now = pendulum.now()
         
-        old_token = await RefreshToken.create(
+        await RefreshToken.create(
             user_id=setup_user.id,
             refresh_token="old_token",
             refresh_token_hash="old_token_hash",
@@ -44,7 +44,7 @@ class TestIdentity:
         encrypted = Encrypted(configuration.aes_encryption_key)
         old_token_hash = encrypted.hash("old_token")
 
-        old_token = await RefreshToken.create(
+        await RefreshToken.create(
             user_id=setup_user.id,
             refresh_token="old_token",
             refresh_token_hash=old_token_hash,
@@ -56,3 +56,21 @@ class TestIdentity:
         assert tokens.expires_in == configuration.jwt_expiration
         assert tokens.scope == configuration.twitch_scope
         assert tokens.token_type == "bearer"
+    
+    @pytest.mark.asyncio
+    async def test_refresh_token_invalidated(self, setup_user):
+        configuration = Configuration()
+        identity = Identity(configuration)
+        encrypted = Encrypted(configuration.aes_encryption_key)
+        old_token_hash = encrypted.hash("old_token")
+
+        await RefreshToken.create(
+            user_id=setup_user.id,
+            refresh_token="old_token",
+            refresh_token_hash=old_token_hash,
+            invalidated_at=pendulum.now(),
+        )
+
+        tokens: AccessToken | None = await identity.refresh_token("old_token")
+
+        assert tokens is None

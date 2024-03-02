@@ -18,7 +18,11 @@ class Identity:
         self.configuration = configuration
 
     async def create_access_token(self, user: User) -> AccessToken:
-        old_token = await RefreshToken.get_or_none(user_id=user.id)
+        old_token = await RefreshToken.get_or_none(
+            user_id=user.id,
+            invalidated_at__isnull=True,
+        )
+
         new_refresh_token = random_refresh_token()
 
         # if the user already has a refresh token, we should invalidate it
@@ -47,7 +51,6 @@ class Identity:
             scope=self.configuration.twitch_scope,
             token_type="bearer",
         )
-    
 
     async def refresh_token(self, refresh_token: str) -> AccessToken | None:
         refresh_token_hash = Encrypted.hash(refresh_token)

@@ -60,6 +60,7 @@ class TwitchClient(OAuthClient):
                 url,
                 headers={"Content-Type": "application/x-www-form-urlencoded"},
                 data=data,
+                timeout=4,
             )
 
             response.raise_for_status()

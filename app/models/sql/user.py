@@ -1,5 +1,5 @@
-from tortoise import Tortoise, fields
-from tortoise.models import Model
+from tortoise import fields, Model
+from tortoise.contrib.pydantic import pydantic_model_creator
 
 
 class User(Model):
@@ -12,3 +12,9 @@ class User(Model):
 
     class Meta:
         table = "application_user"
+    
+    class PydanticMeta:
+        exclude = ["id"]
+
+
+UserModel = pydantic_model_creator(User)

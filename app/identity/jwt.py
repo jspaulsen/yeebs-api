@@ -1,9 +1,14 @@
 from __future__ import annotations
+import json
+from typing import Self
 
-from joserfc import jwt
+from joserfc import jwt, errors
 import pendulum
 from pydantic import BaseModel
 
+
+class TokenException(Exception):
+    pass
 
 
 class JwtHeader(BaseModel):
@@ -45,7 +50,12 @@ class Jwt(BaseModel):
     
     @classmethod
     def decode(cls, token: str, secret: str) -> Jwt:
-        decoded_jwt = jwt.decode(token, secret)
+        try:
+            decoded_jwt = jwt.decode(token, secret)
+        except errors.JoseError as e:
+            raise TokenException(
+                f" Invalid token: {e}",
+            ) from e
 
         return cls(
             header=JwtHeader(**decoded_jwt.header),
@@ -59,3 +69,16 @@ class AccessToken(BaseModel):
     expires_in: int
     scope: list[str]
     token_type: str
+
+    @classmethod
+    def from_json(cls, token: str) -> Self:
+        try:
+            return cls(
+                **json.loads(
+                    token,
+                ),
+            )
+        except json.JSONDecodeError as e:
+            raise TokenException(
+                f"Invalid token: {e}",
+            ) from e

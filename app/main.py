@@ -1,2 +1,8 @@
 from app.api import api
-from app.routers import healthcheck
+
+# routes
+from app.routers.healthcheck import healthcheck
+from app.routers.userinfo import userinfo
+
+# middleware
+from app.middleware.jwt_middleware import jwt_middleware

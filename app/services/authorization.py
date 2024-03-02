@@ -69,7 +69,6 @@ class Authorization:
         await existing_token.save()
         return existing_token
 
-    
     async def get_access_token(self, service: Origin, user_id: str) -> str | None:
         expire_ts = pendulum.now().add(seconds=REDUCED_EXPIRATION)
         client = self.client_mapping.get(service)
