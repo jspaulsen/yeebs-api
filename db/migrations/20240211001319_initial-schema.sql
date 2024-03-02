@@ -39,4 +39,3 @@ DROP TABLE authorization_token;
 DROP TABLE user;
 DROP TYPE token_origin;
 DROP TABLE refresh_token;
-
