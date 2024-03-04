@@ -1,5 +1,5 @@
 from typing import Any
-from fastapi import Request, Response
+from fastapi import HTTPException, Request, Response
 import pendulum
 from app.api import api
 from app.configuration import Configuration
