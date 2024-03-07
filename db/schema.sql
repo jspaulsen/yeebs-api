@@ -24,6 +24,39 @@ SET default_tablespace = '';
 SET default_table_access_method = heap;
 
 --
+-- Name: api_token; Type: TABLE; Schema: public; Owner: -
+--
+
+CREATE TABLE public.api_token (
+    id integer NOT NULL,
+    user_id integer,
+    token character varying NOT NULL,
+    created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
+    invalidated_at timestamp with time zone
+);
+
+
+--
+-- Name: api_token_id_seq; Type: SEQUENCE; Schema: public; Owner: -
+--
+
+CREATE SEQUENCE public.api_token_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+--
+-- Name: api_token_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: -
+--
+
+ALTER SEQUENCE public.api_token_id_seq OWNED BY public.api_token.id;
+
+
+--
 -- Name: application_user; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -135,6 +168,13 @@ CREATE TABLE public.schema_migrations (
 
 
 --
+-- Name: api_token id; Type: DEFAULT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.api_token ALTER COLUMN id SET DEFAULT nextval('public.api_token_id_seq'::regclass);
+
+
+--
 -- Name: application_user id; Type: DEFAULT; Schema: public; Owner: -
 --
 
@@ -153,6 +193,22 @@ ALTER TABLE ONLY public.authorization_token ALTER COLUMN id SET DEFAULT nextval(
 --
 
 ALTER TABLE ONLY public.refresh_token ALTER COLUMN id SET DEFAULT nextval('public.refresh_token_id_seq'::regclass);
+
+
+--
+-- Name: api_token api_token_pkey; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.api_token
+    ADD CONSTRAINT api_token_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: api_token api_token_token_key; Type: CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.api_token
+    ADD CONSTRAINT api_token_token_key UNIQUE (token);
 
 
 --
@@ -209,6 +265,14 @@ ALTER TABLE ONLY public.refresh_token
 
 ALTER TABLE ONLY public.schema_migrations
     ADD CONSTRAINT schema_migrations_pkey PRIMARY KEY (version);
+
+
+--
+-- Name: api_token api_token_user_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.api_token
+    ADD CONSTRAINT api_token_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.application_user(id) ON DELETE CASCADE;
 
 
 --

@@ -1,4 +1,5 @@
 import logging
+import secrets
 import httpx
 
 from pydantic import BaseModel
@@ -9,6 +10,7 @@ from app.clients.twitch import TwitchClient
 from app.configuration import Configuration
 from app.models.encrypted import Encrypted
 from app.models.oauth_token import OAuthToken
+from app.models.sql.api_token import ApiToken
 from app.models.sql.authorization_token import AuthorizationToken, Origin
 
 
@@ -128,3 +130,26 @@ class Authorization:
 
             await token.save()
             return new_token.access_token
+    
+    async def generate_api_token(self, user_id: str) -> str:
+        token = secrets.token_urlsafe(32)
+
+        result = await ApiToken.create(
+            user_id=user_id,
+            token=token,
+        )
+
+        return result.token
+    
+    async def invalidate_api_token(self, user_id: str, token: str) -> None:
+        api_token = (
+            await ApiToken
+                .filter(user_id=user_id, token=token)
+                .first()
+        )
+
+        if not api_token:
+            return
+        
+        api_token.invalidated_at = pendulum.now(tz='UTC')
+        await api_token.save()
