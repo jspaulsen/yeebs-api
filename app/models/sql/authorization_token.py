@@ -12,8 +12,8 @@ class AuthorizationToken(Model):
     id = fields.IntField(pk=True)
     user = fields.ForeignKeyField("models.User", related_name="authorization_token")
     origin = fields.CharEnumField(Origin)
-    access_token = fields.CharField(max_length=255)
-    refresh_token = fields.CharField(max_length=255)
+    access_token = fields.TextField()
+    refresh_token = fields.TextField()
     invalid_token = fields.BooleanField(default=False)
     expires_at = fields.DatetimeField()
 

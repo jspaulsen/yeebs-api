@@ -29,8 +29,8 @@ SET default_table_access_method = heap;
 
 CREATE TABLE public.application_user (
     id integer NOT NULL,
-    external_user_id character varying(255) NOT NULL,
-    username character varying(255),
+    external_user_id character varying NOT NULL,
+    username character varying,
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
     updated_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP
 );
@@ -64,8 +64,8 @@ CREATE TABLE public.authorization_token (
     id integer NOT NULL,
     user_id integer,
     origin public.token_origin,
-    access_token character varying(255) NOT NULL,
-    refresh_token character varying(255) NOT NULL,
+    access_token character varying NOT NULL,
+    refresh_token character varying NOT NULL,
     invalid_token boolean DEFAULT false,
     expires_at timestamp with time zone
 );
@@ -98,8 +98,8 @@ ALTER SEQUENCE public.authorization_token_id_seq OWNED BY public.authorization_t
 CREATE TABLE public.refresh_token (
     id integer NOT NULL,
     user_id integer,
-    refresh_token character varying(255) NOT NULL,
-    refresh_token_hash character varying(255) NOT NULL,
+    refresh_token character varying NOT NULL,
+    refresh_token_hash character varying NOT NULL,
     created_at timestamp with time zone DEFAULT CURRENT_TIMESTAMP,
     invalidated_at timestamp with time zone
 );

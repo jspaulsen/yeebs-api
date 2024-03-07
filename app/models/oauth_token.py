@@ -5,5 +5,5 @@ class OAuthToken(BaseModel):
     access_token: str
     expires_in: int
     refresh_token: str
-    scope: list[str]
+    scope: list[str] | str
     token_type: str
