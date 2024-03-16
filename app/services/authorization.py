@@ -5,8 +5,10 @@ import httpx
 from pydantic import BaseModel
 import pendulum
 from tortoise.transactions import in_transaction
+from app.clients.oauth_client import OAuthClient
 
 from app.clients.twitch import TwitchClient
+from app.clients.spotify import SpotifyClient
 from app.configuration import Configuration
 from app.models.encrypted import Encrypted
 from app.models.oauth_token import OAuthToken
@@ -35,6 +37,10 @@ class Authorization:
             Origin.Twitch: TwitchClient(
                 configuration.twitch_client_id,
                 configuration.twitch_client_secret,
+            ),
+            Origin.Spotify: SpotifyClient(
+                configuration.spotify_client_id,
+                configuration.spotify_client_secret,
             ),
         }
     
@@ -73,7 +79,8 @@ class Authorization:
 
     async def get_access_token(self, service: Origin, user_id: str) -> str | None:
         expire_ts = pendulum.now().add(seconds=REDUCED_EXPIRATION)
-        client = self.client_mapping.get(service)
+        client: OAuthClient = self.client_mapping.get(service)
+        encrypted = Encrypted(self.configuration.aes_encryption_key)
 
         if not client:
             logger.error(
@@ -96,16 +103,29 @@ class Authorization:
 
             if not token or token.invalid_token:
                 return None
-
+            
             # if the token is not expired (and won't expire in the next minute)
             if token.expires_at > expire_ts:
-                return token.access_token
+                return encrypted.decrypt(token.access_token)
             
             try:
-                new_token: OAuthToken = await client.refresh_token(token.refresh_token)
+                new_token: OAuthToken = await client.refresh_token(
+                    encrypted.decrypt(
+                        token.refresh_token,
+                    )
+                )
             except httpx.HTTPStatusError as e:
                 if e.response.status_code in (400, 401):
                     token.invalid_token = True
+
+                    logger.info(
+                        f"A user's token is invalid, marking as such: {e}",
+                        extra={
+                            "token_id": token.id,
+                            "user_id": user_id,
+                            "service": str(service),
+                        },
+                    )
 
                     await token.save()
                 else:
@@ -122,7 +142,7 @@ class Authorization:
             
             encrypted = Encrypted(self.configuration.aes_encryption_key)
             access_token = encrypted.encrypt(new_token.access_token)
-            refresh_token = encrypted.encrypt(new_token.refresh_token)
+            refresh_token = encrypted.encrypt(new_token.refresh_token) if new_token.refresh_token else token.refresh_token
 
             token.access_token = access_token
             token.refresh_token = refresh_token

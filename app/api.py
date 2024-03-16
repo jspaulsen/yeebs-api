@@ -10,7 +10,7 @@ from app.configuration import Configuration
 from app.identity.jwt import Jwt
 from app.services.authorization import Authorization
 from app.exception_handlers import exception_handler
-from app.routers import twitch_router
+from app.routers import twitch_router, spotify_router
 from app.routers.oauth import oauth_router
 from app.services.identity import Identity
 
@@ -44,5 +44,6 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 api: FastAPI = FastAPI(lifespan=lifespan)
 api.include_router(oauth_router)
 api.include_router(twitch_router)
+api.include_router(spotify_router)
 
 api.add_exception_handler(Exception, exception_handler)

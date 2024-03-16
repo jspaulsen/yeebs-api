@@ -9,6 +9,5 @@ class ApiToken(Model):
     created_at = fields.DatetimeField(auto_now_add=True)
     invalidated_at = fields.DatetimeField(null=True)
 
-
     class Meta:
         table = "api_token"
