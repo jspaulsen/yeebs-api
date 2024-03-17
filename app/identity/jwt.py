@@ -1,6 +1,7 @@
 from __future__ import annotations
 import json
 from typing import Self
+from fastapi import HTTPException, Request
 
 from joserfc import jwt, errors
 import pendulum
@@ -82,3 +83,12 @@ class AccessToken(BaseModel):
             raise TokenException(
                 f"Invalid token: {e}",
             ) from e
+
+
+def jwt_dependency(request: Request) -> Jwt:
+    try:
+        jwt: Jwt = request.state.jwt
+    except AttributeError:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    return jwt

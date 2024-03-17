@@ -82,8 +82,9 @@ async def twitch_oauth_callback(
                 username=username,
             )
 
-        # Add the access token to the database
+        # Add the access token to the database and generate an API token
         await token_manager.upsert_access_token(Origin.Twitch, user.id, token)
+        await token_manager.generate_api_token(user.id)
 
         # Generate an access token for the user
         access_token = await identity.create_access_token(user)

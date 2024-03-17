@@ -18,7 +18,10 @@ os.environ["TWITCH_CLIENT_ID"] = "test_client_id"
 os.environ["TWITCH_CLIENT_SECRET"] = "test_client_secret"
 os.environ['AES_ENCRYPTION_KEY'] = '5d70a2b6386db77d88c4b7be20ccf37a'
 os.environ['JWT_SECRET_KEY'] = '5d70a2b6386db77d88c4b7be20ccf37a'
+os.environ['TWITCH_SUBSCRIPTION_SECRET'] = 'test_subscription_secret'
 
+# generate a random string of 16 characters length
+os.environ['AES_ENCRYPTION_KEY'] = os.urandom(16).hex()
 
 @pytest.fixture(scope="session")
 def setup_database():

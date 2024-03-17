@@ -1,8 +1,8 @@
 from typing import Annotated
 from fastapi import Depends, Response
 from fastapi.responses import JSONResponse
-from app.api import api, jwt_dependency
-from app.identity.jwt import Jwt
+from app.api import api
+from app.identity.jwt import Jwt, jwt_dependency
 from app.models.sql.user import User, UserModel
 
 
